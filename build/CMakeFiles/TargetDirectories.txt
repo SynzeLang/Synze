@@ -1,0 +1,8 @@
+C:/Users/sirfi/Projects/Syntaxium/build/CMakeFiles/Syntaxium.dir
+C:/Users/sirfi/Projects/Syntaxium/build/CMakeFiles/NightlyMemoryCheck.dir
+C:/Users/sirfi/Projects/Syntaxium/build/CMakeFiles/Experimental.dir
+C:/Users/sirfi/Projects/Syntaxium/build/CMakeFiles/Continuous.dir
+C:/Users/sirfi/Projects/Syntaxium/build/CMakeFiles/Nightly.dir
+C:/Users/sirfi/Projects/Syntaxium/build/CMakeFiles/RUN_TESTS.dir
+C:/Users/sirfi/Projects/Syntaxium/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/sirfi/Projects/Syntaxium/build/CMakeFiles/ZERO_CHECK.dir

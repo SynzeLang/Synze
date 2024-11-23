@@ -1,0 +1,5 @@
+variable hello_world = "Hello World!"
+variable x = 1
+send "hi"
+send x + 4 + " equals 5"
+send "I can send " + hello_world
