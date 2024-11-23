@@ -5,4 +5,3 @@ add_executable(Syntaxium syntaxium.cpp)
 
 include(CTest)
 enable_testing()
-
