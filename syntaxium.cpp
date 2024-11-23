@@ -104,22 +104,57 @@ private:
         std::cout << "Successfully executed file: " << normalizedPath << " in " << duration << "ms" << std::endl;
     }
 
-    std::string handleSendCommand(const std::vector<Token>& tokens) {
+        std::string handleSendCommand(const std::vector<Token>& tokens) {
         std::ostringstream output;
+        std::string stringResult;
         double mathResult = 0;
-        bool isMathMode = false; // Indicates whether we're processing a mathematical expression
+        bool isMathMode = false;
         char currentOperator = '+';
-        bool mathPerformed = false; // Tracks if any math has been performed
+        bool mathPerformed = false;
 
         for (size_t i = 1; i < tokens.size(); ++i) {
             if (tokens[i].type == STRING_LITERAL) {
                 if (isMathMode) {
-                    output << mathResult;
+                    if (mathPerformed || mathResult != 0) {
+                        output << mathResult;
+                    }
                     mathResult = 0;
+                    isMathMode = false;
                 }
-                output << tokens[i].value;
-                isMathMode = false;
-            } else if (tokens[i].type == NUMBER || tokens[i].type == IDENTIFIER) {
+                stringResult += tokens[i].value;
+            } else if (tokens[i].type == IDENTIFIER) {
+                auto it = variables.find(tokens[i].value);
+                if (it != variables.end()) {
+                    if (it->second.first == "string") {
+                        if (isMathMode) {
+                            if (mathPerformed || mathResult != 0) {
+                                output << mathResult;
+                            }
+                            mathResult = 0;
+                            isMathMode = false;
+                        }
+                        stringResult += it->second.second;
+                    } else {
+                        double value = getValueAsNumber(tokens[i]);
+                        if (isMathMode) {
+                            if (currentOperator == '+') mathResult += value;
+                            else if (currentOperator == '-') mathResult -= value;
+                            else if (currentOperator == '*') mathResult *= value;
+                            else if (currentOperator == '/') {
+                                if (value == 0) throw std::runtime_error("Division by zero.");
+                                mathResult /= value;
+                            }
+                            mathPerformed = true;
+                        } else {
+                            mathResult = value;
+                            mathPerformed = true;
+                        }
+                        isMathMode = true;
+                    }
+                } else {
+                    throw std::runtime_error("Undefined variable: " + tokens[i].value);
+                }
+            } else if (tokens[i].type == NUMBER) {
                 double value = getValueAsNumber(tokens[i]);
                 if (isMathMode) {
                     if (currentOperator == '+') mathResult += value;
@@ -129,9 +164,9 @@ private:
                         if (value == 0) throw std::runtime_error("Division by zero.");
                         mathResult /= value;
                     }
-                    mathPerformed = true; // Math operation was performed
+                    mathPerformed = true;
                 } else {
-                    mathResult = value; // Start a new math result
+                    mathResult = value;
                     mathPerformed = true;
                 }
                 isMathMode = true;
@@ -147,14 +182,14 @@ private:
             }
         }
 
-        if (mathPerformed) {
+        if (mathPerformed || mathResult != 0) {
             output << mathResult;
         }
 
+        output << stringResult; // Append any accumulated string results
+
         return output.str();
     }
-
-
 
     double getValueAsNumber(const Token& token) {
         if (token.type == NUMBER) {
@@ -170,7 +205,7 @@ private:
         throw std::runtime_error("Invalid token");
     }
 
-    std::vector<Token> tokenize(const std::string& line) {
+        std::vector<Token> tokenize(const std::string& line) {
         std::vector<Token> tokens;
         size_t i = 0;
 
@@ -207,9 +242,9 @@ private:
                 size_t start = i;
                 while (i < line.length() && (std::isdigit(line[i]) || line[i] == '.')) i++;
                 tokens.push_back({ NUMBER, line.substr(start, i - start) });
-            } else if (std::isalpha(line[i]) || line[i] == '/' || line[i] == ':' || line[i] == '.') {
+            } else if (std::isalpha(line[i]) || line[i] == '_' || line[i] == '/' || line[i] == ':' || line[i] == '.') {
                 size_t start = i;
-                while (i < line.length() && (std::isalnum(line[i]) || line[i] == '/' || line[i] == ':' || line[i] == '.')) i++;
+                while (i < line.length() && (std::isalnum(line[i]) || line[i] == '_' || line[i] == '/' || line[i] == ':' || line[i] == '.')) i++;
                 tokens.push_back({ IDENTIFIER, line.substr(start, i - start) });
             } else if (line[i] == '=' || line[i] == '+' || line[i] == '-' || line[i] == '*' || line[i] == '/') {
                 tokens.push_back({ line[i] == '=' ? ASSIGNMENT : OPERATOR, std::string(1, line[i]) });
@@ -225,12 +260,12 @@ private:
 
 int main() {
     Interpreter interpreter;
-    std::cout << "#######  ##    ##  ###    ##  ########   #####   ##   ##  ##  ##    ##  ###    ### \n";
+    std::cout << "\n#######  ##    ##  ###    ##  ########   #####   ##   ##  ##  ##    ##  ###    ### \n";
     std::cout << "##        ##  ##   ####   ##     ##     ##   ##   ## ##   ##  ##    ##  ####  #### \n";
     std::cout << "#######    ####    ## ##  ##     ##     #######    ###    ##  ##    ##  ## #### ## \n";
     std::cout << "     ##     ##     ##  ## ##     ##     ##   ##   ## ##   ##  ##    ##  ##  ##  ## \n";
-    std::cout << "#######     ##     ##   ####     ##     ##   ##  ##   ##  ##   ######   ##      ## \n";
-    std::cout << "The Syntaxium Interpreter is active.\nType 'exit' to quit.\n";
+    std::cout << "#######     ##     ##   ####     ##     ##   ##  ##   ##  ##   ######   ##      ## \n\n";
+    std::cout << "The Syntaxium Interpreter is active.\nType 'exit' to quit.\n\n";
 
     std::string line;
     while (true) {
