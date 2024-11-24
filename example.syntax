@@ -1,5 +1,4 @@
 variable hello = "Hello person! "
 send hello + "It's nice to meet you!"
-variable integer = 2158612
-variable string = "This is a string"
-send integer + string
+variable string = "This is a string and this is an integer: "
+send string + 5
