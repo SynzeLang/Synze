@@ -130,14 +130,14 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
     std::ostringstream temp;
     temp << std::fixed << std::setprecision(10) << mathResult;
     std::string result = temp.str();
-    
+
     if (result.find('.') != std::string::npos) {
         result = result.substr(0, result.find_last_not_of('0') + 1);
         if (result.back() == '.') {
             result.pop_back();
         }
     }
-    
+
     return result;
 }
 
@@ -181,7 +181,7 @@ std::vector<Token> Interpreter::tokenize(const std::string& line) {
             expectOperandOrUnaryMinus = false;
         } else if (std::isalpha(line[i]) || line[i] == '_') {
             size_t start = i;
-            while (i < line.length() && (std::isalnum(line[i]) || line[i] == '_' || line[i] == '/' || line[i] == ':' || line[i] == '.')) i++;
+            while (i < line.length() && (std::isalnum(line[i]) || line[i] == '_')) i++;
             tokens.push_back({ IDENTIFIER, line.substr(start, i - start) });
             expectOperandOrUnaryMinus = false;
         } else if (line[i] == '=') {

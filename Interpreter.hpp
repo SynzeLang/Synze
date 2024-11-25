@@ -6,7 +6,6 @@
 #include <string>
 #include <map>
 
-
 class Interpreter {
     std::map<std::string, std::pair<std::string, std::string>> variables;
 
