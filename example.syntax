@@ -1,4 +1,17 @@
-variable hello = "Hello person! "
-send hello + "It's nice to meet you!"
-variable string = "This is a string and this is an integer: "
-send string + 5
+variable greeting = "Hello World!"
+send greeting
+
+variable num1 = 10
+variable num2 = 5
+send "Basic math: " + num1 + " + " + num2 + " = " + (num1 + num2)
+send "More math: " + num1 + " * " + num2 + " = " + (num1 * num2)
+
+variable message = "The result of 15 / 3 is: "
+send message + (15 / 3)
+
+variable isActive = true
+send "Boolean value: " + isActive
+
+variable originalText = "Original"
+variable copiedText = originalText
+send "Copied value: " + copiedText
