@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <iomanip>
 #include <algorithm>
 #include <chrono>
 
@@ -88,11 +89,13 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
             output << tokens[i].value;
             isMathMode = false;
         } else if (tokens[i].type == IDENTIFIER || tokens[i].type == NUMBER) {
-            double value;
+            double value = 0;
+            std::string tokenValue = tokens[i].value;
+
             if (tokens[i].type == IDENTIFIER) {
-                auto it = variables.find(tokens[i].value);
+                auto it = variables.find(tokenValue);
                 if (it == variables.end()) {
-                    throw std::runtime_error("Undefined variable: " + tokens[i].value);
+                    throw std::runtime_error("Undefined variable: " + tokenValue);
                 }
                 if (it->second.first == "string") {
                     output << it->second.second;
@@ -100,39 +103,48 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
                 }
                 value = std::stod(it->second.second);
             } else {
-                value = std::stod(tokens[i].value);
+                value = std::stod(tokenValue);
             }
 
             if (!mathStarted) {
                 mathResult = value;
                 mathStarted = true;
             } else if (isMathMode) {
-                if (currentOperator == '+') mathResult += value;
-                else if (currentOperator == '-') mathResult -= value;
-                else if (currentOperator == '*') mathResult *= value;
-                else if (currentOperator == '/') {
-                    if (value == 0) throw std::runtime_error("Division by zero.");
-                    mathResult /= value;
+                switch (currentOperator) {
+                    case '+': mathResult += value; break;
+                    case '-': mathResult -= value; break;
+                    case '*': mathResult *= value; break;
+                    case '/':
+                        if (value == 0) throw std::runtime_error("Division by zero.");
+                        mathResult /= value;
+                        break;
                 }
-            }
-        
-            if (i == tokens.size() - 1 || tokens[i + 1].type != OPERATOR) {
-                output << mathResult;
-                mathStarted = false;
-                mathResult = 0;
             }
         } else if (tokens[i].type == OPERATOR) {
             currentOperator = tokens[i].value[0];
             isMathMode = true;
+            continue;
         }
     }
 
-    return output.str();
+    std::ostringstream temp;
+    temp << std::fixed << std::setprecision(10) << mathResult;
+    std::string result = temp.str();
+    
+    if (result.find('.') != std::string::npos) {
+        result = result.substr(0, result.find_last_not_of('0') + 1);
+        if (result.back() == '.') {
+            result.pop_back();
+        }
+    }
+    
+    return result;
 }
 
 std::vector<Token> Interpreter::tokenize(const std::string& line) {
     std::vector<Token> tokens;
     size_t i = 0;
+    bool expectOperandOrUnaryMinus = true;
 
     while (i < line.length()) {
         if (std::isspace(line[i])) {
@@ -146,12 +158,9 @@ std::vector<Token> Interpreter::tokenize(const std::string& line) {
         } else if (line.substr(i, 3) == "run") {
             tokens.push_back({ RUN, "run" });
             i += 3;
-
             while (i < line.length() && std::isspace(line[i])) i++;
             size_t pathStart = i;
-            while (i < line.length() && !std::isspace(line[i])) {
-                i++;
-            }
+            while (i < line.length() && !std::isspace(line[i])) i++;
             tokens.push_back({ IDENTIFIER, line.substr(pathStart, i - pathStart) });
         } else if (line.substr(i, 8) == "variable") {
             tokens.push_back({ VARIABLE, "variable" });
@@ -163,21 +172,32 @@ std::vector<Token> Interpreter::tokenize(const std::string& line) {
             }
             tokens.push_back({ STRING_LITERAL, line.substr(i + 1, endQuote - i - 1) });
             i = endQuote + 1;
-        } else if (std::isdigit(line[i]) || (line[i] == '-' && i + 1 < line.length() && std::isdigit(line[i + 1]))) {
+            expectOperandOrUnaryMinus = false;
+        } else if (std::isdigit(line[i]) || (line[i] == '-' && expectOperandOrUnaryMinus && i + 1 < line.length() && std::isdigit(line[i + 1]))) {
             size_t start = i;
+            if (line[i] == '-') i++;
             while (i < line.length() && (std::isdigit(line[i]) || line[i] == '.')) i++;
             tokens.push_back({ NUMBER, line.substr(start, i - start) });
-        } else if (std::isalpha(line[i]) || line[i] == '_' || line[i] == '/' || line[i] == ':' || line[i] == '.') {
+            expectOperandOrUnaryMinus = false;
+        } else if (std::isalpha(line[i]) || line[i] == '_') {
             size_t start = i;
             while (i < line.length() && (std::isalnum(line[i]) || line[i] == '_' || line[i] == '/' || line[i] == ':' || line[i] == '.')) i++;
             tokens.push_back({ IDENTIFIER, line.substr(start, i - start) });
-        } else if (line[i] == '=' || line[i] == '+' || line[i] == '-' || line[i] == '*' || line[i] == '/') {
-            tokens.push_back({ line[i] == '=' ? ASSIGNMENT : OPERATOR, std::string(1, line[i]) });
+            expectOperandOrUnaryMinus = false;
+        } else if (line[i] == '=') {
+            tokens.push_back({ OPERATOR, "=" });
             i++;
+            expectOperandOrUnaryMinus = true;
+        } else if (line[i] == '+' || line[i] == '-' || line[i] == '*' || line[i] == '/') {
+            if (line[i] == '-' && expectOperandOrUnaryMinus) {
+                continue;
+            }
+            tokens.push_back({ OPERATOR, std::string(1, line[i]) });
+            i++;
+            expectOperandOrUnaryMinus = true;
         } else {
             throw std::runtime_error("Invalid token");
         }
     }
-
     return tokens;
 }
