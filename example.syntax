@@ -14,3 +14,15 @@ send "Hello, " + firstName + " " + lastName
 
 variable isActive = true
 send "Status: " + isActive
+
+send 10 + 4
+
+send 10 * 4
+
+send 10 / 4
+
+send 10 - 4
+
+variable negative = -5
+send negative * 4
+send -4 * 5

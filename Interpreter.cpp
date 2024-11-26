@@ -18,6 +18,9 @@ void Interpreter::execute(const std::string& line) {
         handleRunCommand(tokens[1].value);
     } else if (tokens[0].type == VARIABLE && tokens.size() >= 4 && tokens[1].type == IDENTIFIER && tokens[2].type == ASSIGNMENT) {
         handleVariableDeclaration(tokens);
+    } else if (tokens[0].type == EXIT) {
+        std::cout << "Exiting the interpreter. Goodbye!" << std::endl;
+        exit(0);
     } else {
         throw std::runtime_error("Invalid command. Use 'help' for more help.");
     }
@@ -25,21 +28,35 @@ void Interpreter::execute(const std::string& line) {
 
 void Interpreter::handleVariableDeclaration(const std::vector<Token>& tokens) {
     std::string varName = tokens[1].value;
-    std::string rawValue = tokens[3].value;
 
-    if (tokens[3].type == STRING_LITERAL) {
-        variables[varName] = { "string", rawValue };
-    } else if (tokens[3].type == NUMBER) {
-        variables[varName] = { "number", rawValue };
-    } else if (rawValue == "true" || rawValue == "false") {
-        variables[varName] = { "boolean", rawValue };
-    } else if (tokens[3].type == IDENTIFIER) {
-        auto value = variables.find(rawValue);
-        if (value != variables.end()) {
-            variables[varName] = value->second;
-        } else {
-            throw std::runtime_error("Undefined variable: " + rawValue);
+    // Handle assignment value
+    Token valueToken = tokens[3];
+
+    // Handle negative numbers
+    if (valueToken.type == OPERATOR && valueToken.value == "-" &&
+        tokens.size() > 4 && tokens[4].type == NUMBER) {
+        valueToken.type = NUMBER;
+        valueToken.value = "-" + tokens[4].value; // Combine `-` and the number
+    }
+
+    if (variables.find(varName) != variables.end()) {
+        std::cerr << "Warning: Variable already declared: " << varName
+                  << ". Overwriting the existing value." << std::endl;
+    }
+
+    if (valueToken.type == STRING_LITERAL) {
+        variables[varName] = { "string", valueToken.value };
+    } else if (valueToken.type == NUMBER) {
+        variables[varName] = { "number", valueToken.value };
+    } else if (valueToken.value == "true" || valueToken.value == "false") {
+        variables[varName] = { "boolean", valueToken.value };
+    } else if (valueToken.type == IDENTIFIER) {
+        // Check if the identifier exists as a variable
+        auto it = variables.find(valueToken.value);
+        if (it == variables.end()) {
+            throw std::runtime_error("Undefined variable: " + valueToken.value);
         }
+        variables[varName] = it->second;
     } else {
         throw std::runtime_error("Unsupported value type for variable declaration.");
     }
@@ -145,18 +162,7 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
     }
 
     if (mathStarted) {
-        std::ostringstream temp;
-        temp << std::fixed << std::setprecision(10) << mathResult;
-        std::string result = temp.str();
-
-        if (result.find('.') != std::string::npos) {
-            result = result.substr(0, result.find_last_not_of('0') + 1);
-            if (result.back() == '.') {
-                result.pop_back();
-            }
-        }
-
-        output << result;
+        output << mathResult;
     }
 
     return output.str();
@@ -172,39 +178,61 @@ std::vector<Token> Interpreter::tokenize(const std::string& line) {
             continue;
         }
 
+        // Recognize `send` command
         if (line.substr(i, 4) == "send") {
             tokens.push_back({ SEND, "send" });
             i += 4;
-        } else if (line.substr(i, 3) == "run") {
+        }
+        // Recognize `run` command
+        else if (line.substr(i, 3) == "run") {
             tokens.push_back({ RUN, "run" });
             i += 3;
             while (i < line.length() && std::isspace(line[i])) i++;
             size_t pathStart = i;
             while (i < line.length() && !std::isspace(line[i])) i++;
-            tokens.push_back({ IDENTIFIER, line.substr(pathStart, i - pathStart) });
-        } else if (line.substr(i, 8) == "variable") {
+            tokens.push_back({ STRING_LITERAL, line.substr(pathStart, i - pathStart) });
+        }
+        // Recognize `variable` command
+        else if (line.substr(i, 8) == "variable") {
             tokens.push_back({ VARIABLE, "variable" });
             i += 8;
-        } else if (line[i] == '"') {
+        }
+        // Recognize `exit` command
+        else if (line.substr(i, 4) == "exit") {
+            tokens.push_back({ EXIT, "exit" });
+            i += 4;
+        }
+        // Handle string literals
+        else if (line[i] == '"') {
             size_t endQuote = line.find('"', i + 1);
             if (endQuote == std::string::npos) {
                 throw std::runtime_error("Unterminated string literal");
             }
             tokens.push_back({ STRING_LITERAL, line.substr(i + 1, endQuote - i - 1) });
             i = endQuote + 1;
-        } else if (std::isdigit(line[i]) || (line[i] == '-' && i + 1 < line.length() && std::isdigit(line[i + 1]))) {
+        }
+        // Handle negative numbers or standalone numbers
+        else if (line[i] == '-' && i + 1 < line.length() && std::isdigit(line[i + 1])) {
+            size_t start = i++;
+            while (i < line.length() && (std::isdigit(line[i]) || line[i] == '.')) i++;
+            tokens.push_back({ NUMBER, line.substr(start, i - start) });
+        } else if (std::isdigit(line[i])) {
             size_t start = i;
             while (i < line.length() && (std::isdigit(line[i]) || line[i] == '.')) i++;
             tokens.push_back({ NUMBER, line.substr(start, i - start) });
-        } else if (std::isalpha(line[i]) || line[i] == '_') {
+        }
+        // Handle identifiers (variable names)
+        else if (std::isalpha(line[i]) || line[i] == '_') {
             size_t start = i;
             while (i < line.length() && (std::isalnum(line[i]) || line[i] == '_')) i++;
             tokens.push_back({ IDENTIFIER, line.substr(start, i - start) });
-        } else if (line[i] == '=' || line[i] == '+' || line[i] == '-' || line[i] == '*' || line[i] == '/') {
+        }
+        // Handle operators and assignment
+        else if (line[i] == '=' || line[i] == '+' || line[i] == '-' || line[i] == '*' || line[i] == '/') {
             tokens.push_back({ line[i] == '=' ? ASSIGNMENT : OPERATOR, std::string(1, line[i]) });
             i++;
         } else {
-            throw std::runtime_error("Invalid token");
+            throw std::runtime_error("Invalid token at: " + std::string(1, line[i]));
         }
     }
 
