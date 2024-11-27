@@ -1,8 +1,9 @@
+
 # Syntaxium
 
 Syntaxium is a simple interpreted programming language implemented in C++. It provides basic programming constructs including variable declarations, mathematical operations, and string manipulation.
 
-## Features
+## 🌟 Features
 
 - Variable declarations (string, number, boolean)
 - Basic arithmetic operations (+, -, *, /)
@@ -11,51 +12,67 @@ Syntaxium is a simple interpreted programming language implemented in C++. It pr
 - Real-time command interpretation
 - Error handling and reporting
 
-## Building
+## 🛠️ Building
 
 To build Syntaxium, you need:
 - CMake (3.5.0 or higher)
 - C++ compiler with C++11 support
 
-mkdir build
+> mkdir build
 cd build
 cmake ..
 cmake --build .
 
-## Usage
+## 🚀 Usage
 
 After building, you can run Syntaxium in two ways:
 
 1. Interactive Mode:
-./Syntaxium
+> ./Syntaxium
 
 2. File Execution:
 # In the interactive mode
->> run example.syntax
+> run example.syntax
 
-## Syntax
+## 📜 Syntax
 
 ### Variable Declaration
-variable name = value
+variable [name] = [value]
 
 ### Output
-send expression
+send [expression]
 
 ### File Execution
-run filename.syntax
+run [filename.syntax]
 
-## Examples
+### Exit
+exit
 
+## 🧪 Examples
+
+### Declaring a Variable
 variable message = "Hello, World!"
 send message
 
+### Performing Arithmetic
 send 5 + 3 * 2
 
+### String Concatenation
 variable name = "John"
 send "Hello, " + name
 
+### Boolean Variable
 variable isActive = true
+send isActive
 
-## License
+### File Execution Example
+Create a file called example.syntax:
+variable message = "File execution successful!"
+send message
 
-This project is open source and available under the MIT License.
+Then, in interactive mode, run the file:
+> run example.syntax
+
+## 📖 License
+
+This project is open source and available under the [MIT License](https://mit-license.org/).

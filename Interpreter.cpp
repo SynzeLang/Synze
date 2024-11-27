@@ -12,19 +12,22 @@ void Interpreter::execute(const std::string& line) {
     std::vector<Token> tokens = tokenize(line);
     if (tokens.empty()) return;
 
-    std::cout << "\n";
     if (tokens[0].type == SEND && tokens.size() > 1) {
         std::string output = handleSendCommand(tokens);
         std::cout << output << std::endl;
-    } else if (tokens[0].type == RUN && tokens.size() == 2) {
+    }
+    else if (tokens[0].type == RUN && tokens.size() == 2) {
         handleRunCommand(tokens[1].value);
-    } else if (tokens[0].type == VARIABLE && tokens.size() >= 4 && tokens[1].type == IDENTIFIER && tokens[2].type == ASSIGNMENT) {
+    }
+    else if (tokens[0].type == VARIABLE && tokens.size() >= 4 && tokens[1].type == IDENTIFIER && tokens[2].type == ASSIGNMENT) {
         handleVariableDeclaration(tokens);
-    } else if (tokens[0].type == EXIT) {
+    }
+    else if (tokens[0].type == EXIT) {
         std::cout << "Exiting the interpreter. Goodbye!" << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
         exit(0);
-    } if (tokens[0].type == HELP) {
+    }
+    else if (tokens[0].type == HELP) {
         if (tokens.size() == 2) {
             const std::string& command = tokens[1].value;
 
@@ -66,9 +69,10 @@ void Interpreter::execute(const std::string& line) {
                       << "  exit - Close the interpreter.\n"
                       << "  help (command) - Display help for a specific command.\n";
         } else {
-            std::cout << "Error: Invalid syntax for help command. Use 'help' or 'help [command]'.\n";
+        std::cout << "Error: Invalid syntax for help command. Use 'help' or 'help [command]'.\n";
         }
-    } else {
+    }
+    else {
         throw std::runtime_error("Invalid command. Use 'help' for more help.");
     }
 }
@@ -147,9 +151,11 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
 
     for (size_t i = 1; i < tokens.size(); ++i) {
         if (tokens[i].type == STRING_LITERAL) {
+            // Append string literals directly to the output
             output << tokens[i].value;
             isMathMode = false;
         } else if (tokens[i].type == IDENTIFIER) {
+            // Handle variables
             auto it = variables.find(tokens[i].value);
             if (it == variables.end()) {
                 throw std::runtime_error("Undefined variable: " + tokens[i].value);
@@ -159,7 +165,7 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
             const std::string& varValue = it->second.second;
 
             if (varType == "string") {
-                output << varValue;
+                output << varValue; // Append strings directly
             } else if (varType == "boolean") {
                 output << (varValue == "true" ? "true" : "false");
             } else if (varType == "number") {
@@ -180,6 +186,7 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
                 }
             }
         } else if (tokens[i].type == NUMBER) {
+            // Handle numeric values
             double value = std::stod(tokens[i].value);
             if (!mathStarted) {
                 mathResult = value;
@@ -196,6 +203,7 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
                 }
             }
         } else if (tokens[i].type == OPERATOR) {
+            // Handle mathematical operators
             currentOperator = tokens[i].value[0];
             isMathMode = true;
         } else {
@@ -203,6 +211,7 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
         }
     }
 
+    // If math operations occurred, append the result to the output
     if (mathStarted) {
         output << mathResult;
     }
