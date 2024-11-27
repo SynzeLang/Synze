@@ -13,7 +13,7 @@ int main() {
     std::string line;
     while (true) {
         try {
-            std::cout << ">> ";
+            std::cout << "\n>> ";
             std::getline(std::cin, line);
             interpreter.execute(line);
         } catch (const std::exception& e) {

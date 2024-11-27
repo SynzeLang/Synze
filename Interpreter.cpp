@@ -11,7 +11,7 @@
 void Interpreter::execute(const std::string& line) {
     std::vector<Token> tokens = tokenize(line);
     if (tokens.empty()) return;
-
+    std::cout << "\n";
     if (tokens[0].type == SEND && tokens.size() > 1) {
         std::string output = handleSendCommand(tokens);
         std::cout << output << std::endl;
@@ -23,8 +23,9 @@ void Interpreter::execute(const std::string& line) {
         handleVariableDeclaration(tokens);
     }
     else if (tokens[0].type == EXIT) {
-        std::cout << "Exiting the interpreter. Goodbye!" << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::cout << "Exiting the interpreter." << std::endl;
+        std::cout << "Goodbye!" << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(750));
         exit(0);
     }
     else if (tokens[0].type == HELP) {
