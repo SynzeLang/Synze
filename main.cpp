@@ -8,14 +8,13 @@ int main() {
     std::cout << "#######    ####    ## ##  ##     ##     #######    ###    ##  ##    ##  ## #### ## \n";
     std::cout << "     ##     ##     ##  ## ##     ##     ##   ##   ## ##   ##  ##    ##  ##  ##  ## \n";
     std::cout << "#######     ##     ##   ####     ##     ##   ##  ##   ##  ##   ######   ##      ## \n\n";
-    std::cout << "The Syntaxium Interpreter is active.\nType 'exit' to quit.\n\n";
+    std::cout << "The Syntaxium Interpreter is active.\n\nType 'exit' to quit.\nType 'help' for more help.\n";
 
     std::string line;
     while (true) {
         try {
-            std::cout << ">> ";
+            std::cout << "\n>> ";
             std::getline(std::cin, line);
-            if (line == "exit") break;
             interpreter.execute(line);
         } catch (const std::exception& e) {
             std::cerr << "Error: " << e.what() << std::endl;

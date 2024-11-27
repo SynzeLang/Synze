@@ -12,7 +12,8 @@ enum TokenType {
     STRING_LITERAL,
     RUN,
     VARIABLE,
-    EXIT, // Added EXIT token type
+    EXIT,
+    HELP,
     INVALID
 };
 
