@@ -11,7 +11,6 @@
 void Interpreter::execute(const std::string& line) {
     std::vector<Token> tokens = tokenize(line);
     if (tokens.empty()) return;
-    std::cout << "\n";
     if (tokens[0].type == SEND && tokens.size() > 1) {
         std::string output = handleSendCommand(tokens);
         std::cout << output << std::endl;
@@ -23,8 +22,9 @@ void Interpreter::execute(const std::string& line) {
         handleVariableDeclaration(tokens);
     }
     else if (tokens[0].type == EXIT) {
-        std::cout << "Exiting the interpreter." << std::endl;
-        std::cout << "Goodbye!" << std::endl;
+        std::cout << "\x1B[2JExiting the interpreter." << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(750));
+        std::cout << "\x1B[2JGoodbye!" << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(750));
         exit(0);
     }
@@ -41,7 +41,7 @@ void Interpreter::execute(const std::string& line) {
             } else if (command == "send") {
                 std::cout << "Send Command Help Menu\n"
                           << "Processes and outputs a text message or evaluates expressions. Syntax:\n"
-                          << "  send [text or expression]\n\n"
+                          << "  send [text/expression]\n\n"
                           << "- [text or expression]: Can be a plain message, mathematical\n"
                           << "  operation, or variable reference.\n";
             } else if (command == "variable") {
@@ -61,11 +61,11 @@ void Interpreter::execute(const std::string& line) {
         } else if (tokens.size() == 1) {
             std::cout << "Help Menu\n\n"
                       << "Command Overview:\n"
-                      << "  []: Required parameters.\n"
-                      << "  (): Optional parameters.\n\n"
+                      << "  [] - Required parameters.\n"
+                      << "  () - Optional parameters.\n\n"
                       << "Commands:\n"
                       << "  variable [name] = [value] - Declare or assign a variable.\n"
-                      << "  send [text or expression] - Output a message or evaluate an expression.\n"
+                      << "  send [text/expression] - Output a message or evaluate an expression.\n"
                       << "  run [file] - Execute a file containing commands.\n"
                       << "  exit - Close the interpreter.\n"
                       << "  help (command) - Display help for a specific command.\n";
@@ -140,7 +140,7 @@ void Interpreter::handleRunCommand(const std::string& filePath) {
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    std::cout << "Successfully executed file: " << normalizedPath << " in " << duration << "ms" << std::endl;
+    std::cout << "\nSuccessfully executed file: " << normalizedPath << " in " << duration << "ms" << std::endl;
 }
 
 std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
@@ -152,11 +152,9 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
 
     for (size_t i = 1; i < tokens.size(); ++i) {
         if (tokens[i].type == STRING_LITERAL) {
-            // Append string literals directly to the output
             output << tokens[i].value;
             isMathMode = false;
         } else if (tokens[i].type == IDENTIFIER) {
-            // Handle variables
             auto it = variables.find(tokens[i].value);
             if (it == variables.end()) {
                 throw std::runtime_error("Undefined variable: " + tokens[i].value);
@@ -166,7 +164,7 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
             const std::string& varValue = it->second.second;
 
             if (varType == "string") {
-                output << varValue; // Append strings directly
+                output << varValue;
             } else if (varType == "boolean") {
                 output << (varValue == "true" ? "true" : "false");
             } else if (varType == "number") {
@@ -187,7 +185,6 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
                 }
             }
         } else if (tokens[i].type == NUMBER) {
-            // Handle numeric values
             double value = std::stod(tokens[i].value);
             if (!mathStarted) {
                 mathResult = value;
@@ -204,7 +201,6 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
                 }
             }
         } else if (tokens[i].type == OPERATOR) {
-            // Handle mathematical operators
             currentOperator = tokens[i].value[0];
             isMathMode = true;
         } else {
@@ -212,7 +208,6 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
         }
     }
 
-    // If math operations occurred, append the result to the output
     if (mathStarted) {
         output << mathResult;
     }
@@ -253,7 +248,7 @@ std::vector<Token> Interpreter::tokenize(const std::string& line) {
         else if (line.substr(i, 4) == "help") {
             tokens.push_back({ HELP, "help" });
             i += 4;
-            while (i < line.length() && std::isspace(line[i])) i++; // Skip spaces
+            while (i < line.length() && std::isspace(line[i])) i++;
             if (i < line.length()) {
                 size_t start = i;
                 while (i < line.length() && !std::isspace(line[i])) i++;
@@ -268,7 +263,7 @@ std::vector<Token> Interpreter::tokenize(const std::string& line) {
             tokens.push_back({ STRING_LITERAL, line.substr(i + 1, endQuote - i - 1) });
             i = endQuote + 1;
         }
-        else if (line[i] == '-' && (i == 0 || tokens.back().type == OPERATOR || tokens.back().type == ASSIGNMENT)) {
+        else if (line[i] == '-' && (i == 0 || tokens.back().type == OPERATOR || tokens.back().type == ASSIGNMENT || tokens.back().type == SEND)) {
             size_t start = i++;
             while (i < line.length() && (std::isdigit(line[i]) || line[i] == '.')) i++;
             if (start + 1 == i) {
