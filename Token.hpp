@@ -14,6 +14,7 @@ enum TokenType {
     VARIABLE,
     EXIT,
     HELP,
+    COMMENT,
     INVALID
 };
 

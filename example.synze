@@ -1,28 +1,29 @@
-variable message = "Hello, World!"
-send message
+variable message = "Hello, World!" # sets the variable message to 'Hello, World!'
+send message # 'Hello, World!'
 
-variable number = 42
-send "The number is: " + number
+variable number = 42 # sets the variable number to 42
+send "The number is " + number # 'The number is 42'
 
-variable x = 10
-variable y = 5
-send x + y
+variable x = 10 # sets the variable x to '10'
+variable y = 5 # sets the variable y to '5'
+send x + y # '15'
 
-variable firstName = "John"
-variable lastName = "Doe"
-send "Hello, " + firstName + " " + lastName
+variable firstName = "John" # sets the variable firstName to 'John'
+variable lastName = "Doe" # sets the variable lastName to 'Doe'
+send "Hello, " + firstName + " " + lastName # 'Hello, John Doe'
 
-variable isActive = true
-send "Status: " + isActive
+variable isActive = true # sets the variable isActive to 'true'
+send "Status: " + isActive # 'Status: true'
 
-send 10 + 4
+send 10 + 4 # '14'
+send 10 * 4 # '40'
+send 10 / 4 # '2.5'
+send 10 - 4 # '6'
 
-send 10 * 4
+variable negative = -5 # sets the variable negative to '-5'
+send negative * 4 # '-20'
+send -4 * 5 # '-20'
 
-send 10 / 4
-
-send 10 - 4
-
-variable negative = -5
-send negative * 4
-send -4 * 5
+# This is a single-line comment
+send "hi" # 'hi'
+send "#this isn't a comment though" # '#this isn't a comment though'

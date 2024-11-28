@@ -11,6 +11,7 @@
 void Interpreter::execute(const std::string& line) {
     std::vector<Token> tokens = tokenize(line);
     if (tokens.empty()) return;
+    if (tokens[0].type == COMMENT) return;
     if (tokens[0].type == SEND && tokens.size() > 1) {
         std::string output = handleSendCommand(tokens);
         std::cout << output << std::endl;
@@ -117,7 +118,7 @@ void Interpreter::handleRunCommand(const std::string& filePath) {
     std::string normalizedPath = filePath;
     std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
 
-    if (normalizedPath.size() < 8 || normalizedPath.substr(normalizedPath.size() - 7) != ".synze") {
+    if (normalizedPath.size() < 7 || normalizedPath.substr(normalizedPath.size() - 6) != ".synze") {
         throw std::runtime_error("Invalid file extension. Expected .synze");
     }
 
@@ -140,7 +141,7 @@ void Interpreter::handleRunCommand(const std::string& filePath) {
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    std::cout << "\nSuccessfully executed file: " << normalizedPath << " in " << duration << "ms" << std::endl;
+    std::cout << "\nSuccessfully executed file: " << normalizedPath << " in " << duration << "ms\n" << std::endl;
 }
 
 std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
@@ -150,14 +151,23 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
     char currentOperator = '+';
     bool mathStarted = false;
 
+    bool insideString = false;
+
     for (size_t i = 1; i < tokens.size(); ++i) {
+        const std::string& tokenValue = tokens[i].value;
+
         if (tokens[i].type == STRING_LITERAL) {
-            output << tokens[i].value;
-            isMathMode = false;
-        } else if (tokens[i].type == IDENTIFIER) {
-            auto it = variables.find(tokens[i].value);
+            if (insideString) {
+                output << tokenValue;
+            } else {
+                insideString = true;
+                output << tokenValue;
+            }
+        } 
+        else if (tokens[i].type == IDENTIFIER) {
+            auto it = variables.find(tokenValue);
             if (it == variables.end()) {
-                throw std::runtime_error("Undefined variable: " + tokens[i].value);
+                throw std::runtime_error("Undefined variable: " + tokenValue);
             }
 
             const std::string& varType = it->second.first;
@@ -184,8 +194,9 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
                     }
                 }
             }
-        } else if (tokens[i].type == NUMBER) {
-            double value = std::stod(tokens[i].value);
+        }
+        else if (tokens[i].type == NUMBER) {
+            double value = std::stod(tokenValue);
             if (!mathStarted) {
                 mathResult = value;
                 mathStarted = true;
@@ -200,11 +211,14 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
                         break;
                 }
             }
-        } else if (tokens[i].type == OPERATOR) {
-            currentOperator = tokens[i].value[0];
+        }
+        else if (tokens[i].type == OPERATOR) {
+            currentOperator = tokenValue[0];
             isMathMode = true;
-        } else {
-            throw std::runtime_error("Unsupported token in send command.");
+        }
+
+        if (tokenValue == "#") {
+            break;
         }
     }
 
@@ -223,6 +237,16 @@ std::vector<Token> Interpreter::tokenize(const std::string& line) {
         if (std::isspace(line[i])) {
             i++;
             continue;
+        }
+
+        if (line[i] == '#') {
+            if (!tokens.empty() && tokens.back().type == SEND) {
+                tokens.push_back({ STRING_LITERAL, "#" });
+                i++;
+                continue;
+            }
+            tokens.push_back({ COMMENT, line.substr(i) });
+            break;
         }
 
         if (line.substr(i, 4) == "send") {
