@@ -7,6 +7,8 @@
 
 ### Synze is a simple interpreted programming language implemented in C++. It provides basic programming constructs including variable declarations, mathematical operations, and string manipulation.
 
+#### Virustotal flags this as malicious, and if you don't want to download, honestly thats ok. However if you do decide to download this, I can assure you that it is not a virus whatsoever.
+#### When you open it after you download it, Microsoft Defender will have a popup saying that it is a virus. You do not have to proceed, but if you do, click more details and then a run anyway button will appear in the bottom right corner.
   
 
 ## 🌟 Features
