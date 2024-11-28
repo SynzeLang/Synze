@@ -1,20 +1,20 @@
 
-# Syntaxium
+# Synze
 
-Syntaxium is a simple interpreted programming language implemented in C++. It provides basic programming constructs including variable declarations, mathematical operations, and string manipulation.
+Synze is a simple interpreted programming language implemented in C++. It provides basic programming constructs including variable declarations, mathematical operations, and string manipulation.
 
 ## 🌟 Features
 
 - Variable declarations (string, number, boolean)
 - Basic arithmetic operations (+, -, *, /)
 - String concatenation
-- File execution support (.syntax files)
+- File execution support (.synze files)
 - Real-time command interpretation
 - Error handling and reporting
 
 ## 🛠️ Building
 
-To build Syntaxium, you need:
+To build Synze, you need:
 - CMake (3.5.0 or higher)
 - C++ compiler with C++11 support
 
@@ -25,14 +25,14 @@ cmake --build .
 
 ## 🚀 Usage
 
-After building, you can run Syntaxium in two ways:
+After building, you can run Synze in two ways:
 
 1. Interactive Mode:
-> ./Syntaxium
+> ./Synze
 
 2. File Execution:
 # In the interactive mode
-> run example.syntax
+> run example.synze
 
 ## 📜 Syntax
 
@@ -43,7 +43,7 @@ variable [name] = [value]
 send [expression]
 
 ### File Execution
-run [filename.syntax]
+run [filename.synze]
 
 ### Exit
 exit
@@ -66,13 +66,13 @@ variable isActive = true
 send isActive
 
 ### File Execution Example
-Create a file called example.syntax:
+Create a file called example.synze:
 variable message = "File execution successful!"
 send message
 
 Then, in interactive mode, run the file:
-> run example.syntax
+> run example.synze
 
 ## 📖 License
 
-This project is open source and available under the [MIT License](https://mit-license.org/).
+This project is open source and available under the [MIT License](https://mitlicense.org/).

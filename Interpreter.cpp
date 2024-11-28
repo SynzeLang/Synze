@@ -36,8 +36,8 @@ void Interpreter::execute(const std::string& line) {
                 std::cout << "Run Command Help Menu\n"
                           << "Executes a specified file with syntax commands. Syntax:\n"
                           << "  run [file]\n\n"
-                          << "- [file]: Path to the .syntax file to be executed.\n"
-                          << "  Ensure the file exists and uses the .syntax extension.\n";
+                          << "- [file]: Path to the .synze file to be executed.\n"
+                          << "  Ensure the file exists and uses the .synze extension.\n";
             } else if (command == "send") {
                 std::cout << "Send Command Help Menu\n"
                           << "Processes and outputs a text message or evaluates expressions. Syntax:\n"
@@ -117,8 +117,8 @@ void Interpreter::handleRunCommand(const std::string& filePath) {
     std::string normalizedPath = filePath;
     std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
 
-    if (normalizedPath.size() < 8 || normalizedPath.substr(normalizedPath.size() - 7) != ".syntax") {
-        throw std::runtime_error("Invalid file extension. Expected .syntax");
+    if (normalizedPath.size() < 8 || normalizedPath.substr(normalizedPath.size() - 7) != ".synze") {
+        throw std::runtime_error("Invalid file extension. Expected .synze");
     }
 
     std::ifstream file(normalizedPath);

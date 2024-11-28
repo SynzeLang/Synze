@@ -3,12 +3,12 @@
 
 int main() {
     Interpreter interpreter;
-    std::cout << "\n#######  ##    ##  ###    ##  ########   #####   ##   ##  ##  ##    ##  ###    ### \n";
-    std::cout << "##        ##  ##   ####   ##     ##     ##   ##   ## ##   ##  ##    ##  ####  #### \n";
-    std::cout << "#######    ####    ## ##  ##     ##     #######    ###    ##  ##    ##  ## #### ## \n";
-    std::cout << "     ##     ##     ##  ## ##     ##     ##   ##   ## ##   ##  ##    ##  ##  ##  ## \n";
-    std::cout << "#######     ##     ##   ####     ##     ##   ##  ##   ##  ##   ######   ##      ## \n\n";
-    std::cout << "The Syntaxium Interpreter is active.\n\nType 'exit' to quit.\nType 'help' for more help.\n";
+    std::cout << "\n#######  ##    ##  ###    ##  #######  ####### \n";
+    std::cout << "##        ##  ##   ####   ##     ###   ##      \n";
+    std::cout << "#######    ####    ## ##  ##    ###    #####   \n";
+    std::cout << "     ##     ##     ##  ## ##   ###     ##      \n";
+    std::cout << "#######     ##     ##   ####  #######  ####### \n\n";
+    std::cout << "The Synze Interpreter is active.\n\nType 'exit' to quit.\nType 'help' for more help.\n\n";
 
     std::string line;
     while (true) {
