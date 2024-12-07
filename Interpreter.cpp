@@ -150,18 +150,38 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
     bool isMathMode = false;
     char currentOperator = '+';
     bool mathStarted = false;
-
     bool insideString = false;
+    std::ostringstream tempString;
 
     for (size_t i = 1; i < tokens.size(); ++i) {
         const std::string& tokenValue = tokens[i].value;
 
         if (tokens[i].type == STRING_LITERAL) {
-            if (insideString) {
-                output << tokenValue;
-            } else {
+            if (!insideString) {
                 insideString = true;
-                output << tokenValue;
+                tempString.str("");
+            }
+
+            for (size_t j = 0; j < tokens[i].value.size(); ++j) {
+                if (tokens[i].value[j] == '{') {
+                    size_t k = j + 1;
+                    std::string varName;
+                    while (k < tokens[i].value.size() && tokens[i].value[k] != '}') {
+                        varName += tokens[i].value[k++];
+                    }
+                    if (k == tokens[i].value.size() || tokens[i].value[k] != '}') {
+                        throw std::runtime_error("Unmatched '{' in string.");
+                    }
+                    j = k;
+
+                    auto it = variables.find(varName);
+                    if (it == variables.end()) {
+                        throw std::runtime_error("Undefined variable: " + varName);
+                    }
+                    tempString << it->second.second;
+                } else {
+                    tempString << tokens[i].value[j];
+                }
             }
         } 
         else if (tokens[i].type == IDENTIFIER) {
@@ -173,10 +193,8 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
             const std::string& varType = it->second.first;
             const std::string& varValue = it->second.second;
 
-            if (varType == "string") {
-                output << varValue;
-            } else if (varType == "boolean") {
-                output << (varValue == "true" ? "true" : "false");
+            if (insideString) {
+                tempString << varValue;
             } else if (varType == "number") {
                 double value = std::stod(varValue);
                 if (!mathStarted) {
@@ -193,6 +211,8 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
                             break;
                     }
                 }
+            } else {
+                output << varValue;
             }
         }
         else if (tokens[i].type == NUMBER) {
@@ -211,10 +231,21 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
                         break;
                 }
             }
+        } 
+        else if (tokens[i].type == OPERATOR && tokenValue == "+") {
+            if (insideString) {
+                tempString << "";
+            } else {
+                currentOperator = tokenValue[0];
+                isMathMode = true;
+            }
         }
         else if (tokens[i].type == OPERATOR) {
             currentOperator = tokenValue[0];
             isMathMode = true;
+        }
+        else if (tokenValue[0] == '{') {
+            throw std::runtime_error("Invalid use of curly braces '{'.");
         }
 
         if (tokenValue == "#") {
@@ -222,11 +253,41 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
         }
     }
 
+    if (insideString) {
+        output << tempString.str();
+    }
+
     if (mathStarted) {
         output << mathResult;
     }
 
     return output.str();
+}
+
+double Interpreter::evaluateExpression(const std::string& expr) {
+    std::istringstream exprStream(expr);
+    double result = 0;
+    double currentValue;
+    char op = '+';
+
+    while (exprStream >> currentValue) {
+        if (exprStream >> op) {
+            switch (op) {
+                case '+': result += currentValue; break;
+                case '-': result -= currentValue; break;
+                case '*': result *= currentValue; break;
+                case '/':
+                    if (currentValue == 0) throw std::runtime_error("Division by zero.");
+                    result /= currentValue;
+                    break;
+                default:
+                    throw std::runtime_error("Invalid operator in expression.");
+            }
+        } else {
+            result = currentValue;
+        }
+    }
+    return result;
 }
 
 std::vector<Token> Interpreter::tokenize(const std::string& line) {
@@ -284,12 +345,28 @@ std::vector<Token> Interpreter::tokenize(const std::string& line) {
             }
         }
         else if (line[i] == '"') {
-            size_t endQuote = line.find('"', i + 1);
-            if (endQuote == std::string::npos) {
+            std::string literal;
+            i++;
+            while (i < line.length() && line[i] != '"') {
+                if (line[i] == '\\' && i + 1 < line.length()) {
+                    switch (line[i + 1]) {
+                        case 'n': literal += '\n'; break;
+                        case 't': literal += '\t'; break;
+                        case '\\': literal += '\\'; break;
+                        case '"': literal += '"'; break;
+                        default: literal += line[i + 1]; break;
+                    }
+                    i++;
+                } else {
+                    literal += line[i];
+                }
+                i++;
+            }
+            if (i >= line.length() || line[i] != '"') {
                 throw std::runtime_error("Unterminated string literal");
             }
-            tokens.push_back({ STRING_LITERAL, line.substr(i + 1, endQuote - i - 1) });
-            i = endQuote + 1;
+            tokens.push_back({ STRING_LITERAL, literal });
+            i++;
         }
         else if (line[i] == '-' && (i == 0 || tokens.back().type == OPERATOR || tokens.back().type == ASSIGNMENT || tokens.back().type == SEND)) {
             size_t start = i++;

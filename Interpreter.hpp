@@ -18,6 +18,7 @@ public:
 
 private:
     std::unordered_map<std::string, std::pair<std::string, std::string>> variables;
+    double evaluateExpression(const std::string& expr);
 };
 
 #endif
