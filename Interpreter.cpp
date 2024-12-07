@@ -19,7 +19,7 @@ void Interpreter::execute(const std::string& line) {
     else if (tokens[0].type == RUN && tokens.size() == 2) {
         handleRunCommand(tokens[1].value);
     }
-    else if (tokens[0].type == VARIABLE && tokens.size() >= 4 && tokens[1].type == IDENTIFIER && tokens[2].type == ASSIGNMENT) {
+    else if (tokens[0].type == IDENTIFIER && tokens.size() >= 3 && tokens[1].type == ASSIGNMENT) {
         handleVariableDeclaration(tokens);
     }
     else if (tokens[0].type == EXIT) {
@@ -80,19 +80,19 @@ void Interpreter::execute(const std::string& line) {
 }
 
 void Interpreter::handleVariableDeclaration(const std::vector<Token>& tokens) {
-    std::string varName = tokens[1].value;
+    std::string varName = tokens[0].value;
 
-    Token valueToken = tokens[3];
-
-    if (valueToken.type == OPERATOR && valueToken.value == "-" &&
-        tokens.size() > 4 && tokens[4].type == NUMBER) {
-        valueToken.type = NUMBER;
-        valueToken.value = "-" + tokens[4].value;
-    }
+    Token valueToken = tokens[2];
 
     if (variables.find(varName) != variables.end()) {
-        std::cerr << "Warning: Variable already declared: " << varName
-                  << ". Overwriting the existing value." << std::endl;
+        std::cerr << "Warning: Variable '" << varName
+                  << "' already declared. Overwriting the previous value." << std::endl;
+    }
+
+    if (valueToken.type == OPERATOR && valueToken.value == "-" &&
+        tokens.size() > 3 && tokens[3].type == NUMBER) {
+        valueToken.type = NUMBER;
+        valueToken.value = "-" + tokens[3].value;
     }
 
     if (valueToken.type == STRING_LITERAL) {
@@ -250,6 +250,10 @@ std::vector<Token> Interpreter::tokenize(const std::string& line) {
         }
 
         if (line.substr(i, 4) == "send") {
+            size_t nextCharPos = i + 4;
+            if (nextCharPos >= line.length() || !std::isspace(line[nextCharPos])) {
+                throw std::runtime_error("Invalid syntax: 'send' must be followed by a space.");
+            }
             tokens.push_back({ SEND, "send" });
             i += 4;
         }
