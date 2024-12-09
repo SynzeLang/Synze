@@ -1,6 +1,15 @@
-message = "Hello, World!" # sets the variable message to 'Hello, World!'
-send message # 'Hello, World!'
 
+#---Variables---
+
+# String variables
+message = "\nHello, World!" # sets the variable message to 'Hello, World!'
+send message # '' 'Hello, World!'
+
+firstName = "John" # sets the variable firstName to 'John'
+lastName = "Doe" # sets the variable lastName to 'Doe'
+send "Hello, {firstName} {lastName}" # 'Hello, John Doe'
+
+# Integer Variables
 number = 42 # sets the variable number to 42
 send "The number is " + number # 'The number is 42'
 
@@ -8,12 +17,11 @@ x = 10 # sets the variable x to '10'
 y = 5 # sets the variable y to '5'
 send x + y # '15'
 
-firstName = "John" # sets the variable firstName to 'John'
-lastName = "Doe" # sets the variable lastName to 'Doe'
-send "Hello, " + firstName + " " + lastName # 'Hello, John Doe'
-
+# Boolean Variables
 isActive = true # sets the variable isActive to 'true'
 send "Status: " + isActive # 'Status: true'
+
+#---Math---
 
 send 10 + 4 # '14'
 send 10 * 4 # '40'
@@ -24,6 +32,22 @@ negative = -5 # sets the variable negative to '-5'
 send negative * 4 # '-20'
 send -4 * 5 # '-20'
 
+#---Comments---
+
 # This is a single-line comment
 send "hi" # 'hi'
 send "#this isn't a comment though" # '#this isn't a comment though'
+
+#---Special String Literal Characters---
+
+# \n (Line Break)
+send "This\nis\nspaced\nout" # 'This' 'is' 'spaced' 'out'
+
+# \t (Tab)
+send "This\tis a tab" # 'This    is a tab'
+
+# \" (String literal quote)
+send "Here's a quote: \"" # 'Here's a quote: "'
+
+# \\ (Back slash)
+send "This is a backslash: \\" # 'This is a backslash: \'
