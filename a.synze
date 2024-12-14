@@ -1,4 +1,5 @@
-function greet():
-    send "Hi, bob"
+func greet
+    send "Hi!"
 
-greet()
+greet
+greet

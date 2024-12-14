@@ -1,5 +1,7 @@
+# This is an example Synze file. Synze files are any file ending with .synze.
 
-#---Variables---
+
+#---VARIABLES---
 
 # String variables
 message = "\nHello, World!" # sets the variable message to 'Hello, World!'
@@ -21,7 +23,8 @@ send x + y # '15'
 isActive = true # sets the variable isActive to 'true'
 send "Status: " + isActive # 'Status: true'
 
-#---Math---
+
+#---MATH---
 
 send 10 + 4 # '14'
 send 10 * 4 # '40'
@@ -32,13 +35,15 @@ negative = -5 # sets the variable negative to '-5'
 send negative * 4 # '-20'
 send -4 * 5 # '-20'
 
-#---Comments---
+
+#---COMMENTS---
 
 # This is a single-line comment
 send "hi" # 'hi'
 send "#this isn't a comment though" # '#this isn't a comment though'
 
-#---Special String Literal Characters---
+
+#---STRING LITERAL ESCAPE CHARACTERS---
 
 # \n (Line Break)
 send "This\nis\nspaced\nout" # 'This' 'is' 'spaced' 'out'
@@ -51,3 +56,11 @@ send "Here's a quote: \"" # 'Here's a quote: "'
 
 # \\ (Back slash)
 send "This is a backslash: \\" # 'This is a backslash: \'
+
+
+#---FUNCTIONS---
+
+func greet
+    send "Hello there! How are you doing today?" # 'Hello there! How are you doing today?'
+
+greet

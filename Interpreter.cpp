@@ -9,10 +9,64 @@
 #include <chrono>
 
 void Interpreter::execute(const std::string& line) {
-    std::vector<Token> tokens = tokenize(line);
-    if (tokens.empty()) return;
+    std::vector<Token> tokens = tokenize(line); // First declaration
+    static int currentIndentationLevel = 0;
+    static std::vector<std::string> bufferedFunctionLines;
+    static bool capturingFunction = false;
+    static std::string currentFunctionName;
+    static std::vector<std::string> currentFunctionParams;
+
+    int lineIndentation = getIndentationLevel(line);
+
+    // If capturing a function and the indentation decreases, finalize the function
+    if (capturingFunction && lineIndentation <= currentIndentationLevel) {
+        functions[currentFunctionName] = { currentFunctionParams, bufferedFunctionLines };
+        bufferedFunctionLines.clear();
+        capturingFunction = false;
+    }
+
+    if (tokens.empty()) return; // Use the existing `tokens` variable
     if (tokens[0].type == COMMENT) return;
-    if (tokens[0].type == SEND && tokens.size() > 1) {
+
+    // Handle function definitions
+    if (tokens[0].type == FUNC) {
+        if (tokens.size() < 2 || tokens[1].type != IDENTIFIER) {
+            throw std::runtime_error("Invalid function definition. Syntax: func name param1, param2");
+        }
+
+        currentFunctionName = tokens[1].value;
+
+        // Parse parameter list
+        currentFunctionParams.clear();
+        for (size_t i = 2; i < tokens.size(); ++i) {
+            if (tokens[i].type == IDENTIFIER) {
+                currentFunctionParams.push_back(tokens[i].value);
+            } else if (tokens[i].value != ",") {
+                throw std::runtime_error("Invalid parameter syntax in function definition.");
+            }
+        }
+
+        // Start capturing function body
+        capturingFunction = true;
+        currentIndentationLevel = lineIndentation;
+        return;
+    }
+
+    // Capture indented lines for function body
+    if (capturingFunction) {
+        if (lineIndentation > currentIndentationLevel) {
+            bufferedFunctionLines.push_back(trim(line));
+        } else {
+            throw std::runtime_error("Unexpected indentation in function body.");
+        }
+        return;
+    }
+
+    // Handle function calls
+    if (functions.find(tokens[0].value) != functions.end()) {
+        handleFunctionCall(tokens);
+    }
+    else if (tokens[0].type == SEND && tokens.size() > 1) {
         std::string output = handleSendCommand(tokens);
         std::cout << output << std::endl;
     }
@@ -21,12 +75,6 @@ void Interpreter::execute(const std::string& line) {
     }
     else if (tokens[0].type == IDENTIFIER && tokens.size() >= 3 && tokens[1].type == ASSIGNMENT) {
         handleVariableDeclaration(tokens);
-    }
-    else if (tokens[0].type == FUNCTION) {
-        handleFunctionDeclaration(tokens, line);
-    }
-    else if (tokens[0].type == IDENTIFIER && functions.count(tokens[0].value)) {
-        handleFunctionCall(tokens[0].value, tokens);
     }
     else if (tokens[0].type == EXIT) {
         std::cout << "\x1B[2JExiting the interpreter." << std::endl;
@@ -77,7 +125,7 @@ void Interpreter::execute(const std::string& line) {
                       << "  exit - Close the interpreter.\n"
                       << "  help (command) - Display help for a specific command.\n";
         } else {
-        std::cout << "Error: Invalid syntax for help command. Use 'help' or 'help [command]'.\n";
+            std::cout << "Error: Invalid syntax for help command. Use 'help' or 'help [command]'.\n";
         }
     }
     else {
@@ -296,88 +344,42 @@ double Interpreter::evaluateExpression(const std::string& expr) {
     return result;
 }
 
-void Interpreter::handleFunctionDeclaration(const std::vector<Token>& tokens, const std::string& line) {
-    if (tokens.size() < 3 || tokens[1].type != IDENTIFIER || tokens[2].type != OPERATOR || tokens[2].value != ":") {
-        throw std::runtime_error("Invalid function declaration syntax.");
+void Interpreter::handleFunctionCall(const std::vector<Token>& tokens) {
+    const std::string& funcName = tokens[0].value;
+    const auto& func = functions[funcName];
+
+    // Bind parameters
+    if (tokens.size() - 1 != func.first.size()) {
+        throw std::runtime_error("Invalid number of arguments for function: " + funcName);
     }
 
-    std::string functionName = tokens[1].value;
-
-    // Extract parameters
-    size_t paramStart = line.find('(');
-    size_t paramEnd = line.find(')');
-    if (paramStart == std::string::npos || paramEnd == std::string::npos || paramStart >= paramEnd) {
-        throw std::runtime_error("Invalid parameter list for function: " + functionName);
+    std::unordered_map<std::string, std::pair<std::string, std::string>> localVars = variables;
+    for (size_t i = 0; i < func.first.size(); ++i) {
+        localVars[func.first[i]] = { "string", tokens[i + 1].value }; // Assume string for simplicity
     }
 
-    std::string paramList = line.substr(paramStart + 1, paramEnd - paramStart - 1);
-    std::vector<std::string> parameters;
-
-    if (!paramList.empty()) {  // Non-empty parameter list
-        std::istringstream paramStream(paramList);
-        std::string param;
-        while (std::getline(paramStream, param, ',')) {
-            param.erase(std::remove_if(param.begin(), param.end(), ::isspace), param.end());
-            if (!param.empty()) {
-                parameters.push_back(param);
-            }
-        }
+    // Execute function body
+    for (const auto& line : func.second) {
+        execute(line); // Execute each line in function
     }
-
-    // Store function body (everything after the colon)
-    size_t bodyStart = line.find(':') + 1;
-    std::string functionBody = line.substr(bodyStart);
-    functions[functionName] = {parameters, functionBody};
 }
 
-void Interpreter::handleFunctionCall(const std::string& functionName, const std::vector<Token>& tokens) {
-    auto it = functions.find(functionName);
-    if (it == functions.end()) {
-        throw std::runtime_error("Undefined function: " + functionName);
+// Utility to get indentation level (spaces or tabs)
+int Interpreter::getIndentationLevel(const std::string& line) {
+    int level = 0;
+    for (char c : line) {
+        if (c == ' ') level++;
+        else if (c == '\t') level += 4; // Treat tab as 4 spaces
+        else break;
     }
+    return level;
+}
 
-    const auto& [parameters, body] = it->second;
-
-    // Parse arguments
-    size_t argStart = tokens[0].value.find('(');
-    size_t argEnd = tokens[0].value.find(')');
-    if (argStart == std::string::npos || argEnd == std::string::npos || argStart >= argEnd) {
-        throw std::runtime_error("Invalid argument list for function: " + functionName);
-    }
-
-    std::string argList = tokens[0].value.substr(argStart + 1, argEnd - argStart - 1);
-    std::vector<std::string> arguments;
-
-    if (!argList.empty()) {  // Non-empty arguments
-        std::istringstream argStream(argList);
-        std::string arg;
-        while (std::getline(argStream, arg, ',')) {
-            arg.erase(std::remove_if(arg.begin(), arg.end(), ::isspace), arg.end());
-            if (!arg.empty()) {
-                arguments.push_back(arg);
-            }
-        }
-    }
-
-    if (parameters.size() != arguments.size()) {
-        throw std::runtime_error("Incorrect number of arguments for function: " + functionName);
-    }
-
-    // Save current variables and add function parameters
-    auto savedVariables = variables;
-    for (size_t i = 0; i < parameters.size(); ++i) {
-        variables[parameters[i]] = {"string", arguments[i]};
-    }
-
-    try {
-        execute(body);
-    } catch (const std::exception&) {
-        variables = savedVariables;  // Restore previous scope on error
-        throw;
-    }
-
-    // Restore variable scope
-    variables = savedVariables;
+// Utility to trim whitespace
+std::string Interpreter::trim(const std::string& str) {
+    size_t first = str.find_first_not_of(" \t");
+    size_t last = str.find_last_not_of(" \t");
+    return (first == std::string::npos) ? "" : str.substr(first, last - first + 1);
 }
 
 std::vector<Token> Interpreter::tokenize(const std::string& line) {
@@ -399,6 +401,11 @@ std::vector<Token> Interpreter::tokenize(const std::string& line) {
             tokens.push_back({ COMMENT, line.substr(i) });
             break;
         }
+        if (line[i] == ',') {
+            tokens.push_back({ OPERATOR, "," }); // Treat commas as separators
+            i++;
+            continue;
+        }
 
         if (line.substr(i, 4) == "send") {
             size_t nextCharPos = i + 4;
@@ -407,6 +414,11 @@ std::vector<Token> Interpreter::tokenize(const std::string& line) {
             }
             tokens.push_back({ SEND, "send" });
             i += 4;
+        }
+        else if (line.substr(i, 4) == "func") {
+            tokens.push_back({ FUNC, "func" });
+            i += 4;
+            continue;
         }
         else if (line.substr(i, 3) == "run") {
             tokens.push_back({ RUN, "run" });
@@ -419,24 +431,6 @@ std::vector<Token> Interpreter::tokenize(const std::string& line) {
         else if (line.substr(i, 8) == "variable") {
             tokens.push_back({ VARIABLE, "variable" });
             i += 8;
-        }
-        else if (line.substr(i, 8) == "function") {
-            tokens.push_back({FUNCTION, "function"});
-            i += 8;
-            while (i < line.length() && std::isspace(line[i])) i++; // Skip spaces
-
-            size_t start = i;
-            while (i < line.length() && (std::isalnum(line[i]) || line[i] == '_')) i++;
-            if (start == i) throw std::runtime_error("Invalid function name.");
-            tokens.push_back({IDENTIFIER, line.substr(start, i - start)});
-        }
-        else if (line[i] == '(' || line[i] == ')') {
-            tokens.push_back({OPERATOR, std::string(1, line[i])});
-            i++;
-        }
-        else if (line[i] == ':') {
-            tokens.push_back({ OPERATOR, ":" });
-            i++;
         }
         else if (line.substr(i, 4) == "exit") {
             tokens.push_back({ EXIT, "exit" });
