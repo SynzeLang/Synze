@@ -15,6 +15,8 @@ enum TokenType {
     EXIT,
     HELP,
     COMMENT,
+    FUNCTION,
+    COLON,
     INVALID
 };
 

@@ -7,3 +7,6 @@ target_include_directories(Synze PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 include(CTest)
 enable_testing()
+set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to use")
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")

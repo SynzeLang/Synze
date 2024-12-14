@@ -22,6 +22,12 @@ void Interpreter::execute(const std::string& line) {
     else if (tokens[0].type == IDENTIFIER && tokens.size() >= 3 && tokens[1].type == ASSIGNMENT) {
         handleVariableDeclaration(tokens);
     }
+    else if (tokens[0].type == FUNCTION) {
+        handleFunctionDeclaration(tokens, line);
+    }
+    else if (tokens[0].type == IDENTIFIER && functions.count(tokens[0].value)) {
+        handleFunctionCall(tokens[0].value, tokens);
+    }
     else if (tokens[0].type == EXIT) {
         std::cout << "\x1B[2JExiting the interpreter." << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(750));
@@ -290,6 +296,90 @@ double Interpreter::evaluateExpression(const std::string& expr) {
     return result;
 }
 
+void Interpreter::handleFunctionDeclaration(const std::vector<Token>& tokens, const std::string& line) {
+    if (tokens.size() < 3 || tokens[1].type != IDENTIFIER || tokens[2].type != OPERATOR || tokens[2].value != ":") {
+        throw std::runtime_error("Invalid function declaration syntax.");
+    }
+
+    std::string functionName = tokens[1].value;
+
+    // Extract parameters
+    size_t paramStart = line.find('(');
+    size_t paramEnd = line.find(')');
+    if (paramStart == std::string::npos || paramEnd == std::string::npos || paramStart >= paramEnd) {
+        throw std::runtime_error("Invalid parameter list for function: " + functionName);
+    }
+
+    std::string paramList = line.substr(paramStart + 1, paramEnd - paramStart - 1);
+    std::vector<std::string> parameters;
+
+    if (!paramList.empty()) {  // Non-empty parameter list
+        std::istringstream paramStream(paramList);
+        std::string param;
+        while (std::getline(paramStream, param, ',')) {
+            param.erase(std::remove_if(param.begin(), param.end(), ::isspace), param.end());
+            if (!param.empty()) {
+                parameters.push_back(param);
+            }
+        }
+    }
+
+    // Store function body (everything after the colon)
+    size_t bodyStart = line.find(':') + 1;
+    std::string functionBody = line.substr(bodyStart);
+    functions[functionName] = {parameters, functionBody};
+}
+
+void Interpreter::handleFunctionCall(const std::string& functionName, const std::vector<Token>& tokens) {
+    auto it = functions.find(functionName);
+    if (it == functions.end()) {
+        throw std::runtime_error("Undefined function: " + functionName);
+    }
+
+    const auto& [parameters, body] = it->second;
+
+    // Parse arguments
+    size_t argStart = tokens[0].value.find('(');
+    size_t argEnd = tokens[0].value.find(')');
+    if (argStart == std::string::npos || argEnd == std::string::npos || argStart >= argEnd) {
+        throw std::runtime_error("Invalid argument list for function: " + functionName);
+    }
+
+    std::string argList = tokens[0].value.substr(argStart + 1, argEnd - argStart - 1);
+    std::vector<std::string> arguments;
+
+    if (!argList.empty()) {  // Non-empty arguments
+        std::istringstream argStream(argList);
+        std::string arg;
+        while (std::getline(argStream, arg, ',')) {
+            arg.erase(std::remove_if(arg.begin(), arg.end(), ::isspace), arg.end());
+            if (!arg.empty()) {
+                arguments.push_back(arg);
+            }
+        }
+    }
+
+    if (parameters.size() != arguments.size()) {
+        throw std::runtime_error("Incorrect number of arguments for function: " + functionName);
+    }
+
+    // Save current variables and add function parameters
+    auto savedVariables = variables;
+    for (size_t i = 0; i < parameters.size(); ++i) {
+        variables[parameters[i]] = {"string", arguments[i]};
+    }
+
+    try {
+        execute(body);
+    } catch (const std::exception&) {
+        variables = savedVariables;  // Restore previous scope on error
+        throw;
+    }
+
+    // Restore variable scope
+    variables = savedVariables;
+}
+
 std::vector<Token> Interpreter::tokenize(const std::string& line) {
     std::vector<Token> tokens;
     size_t i = 0;
@@ -329,6 +419,24 @@ std::vector<Token> Interpreter::tokenize(const std::string& line) {
         else if (line.substr(i, 8) == "variable") {
             tokens.push_back({ VARIABLE, "variable" });
             i += 8;
+        }
+        else if (line.substr(i, 8) == "function") {
+            tokens.push_back({FUNCTION, "function"});
+            i += 8;
+            while (i < line.length() && std::isspace(line[i])) i++; // Skip spaces
+
+            size_t start = i;
+            while (i < line.length() && (std::isalnum(line[i]) || line[i] == '_')) i++;
+            if (start == i) throw std::runtime_error("Invalid function name.");
+            tokens.push_back({IDENTIFIER, line.substr(start, i - start)});
+        }
+        else if (line[i] == '(' || line[i] == ')') {
+            tokens.push_back({OPERATOR, std::string(1, line[i])});
+            i++;
+        }
+        else if (line[i] == ':') {
+            tokens.push_back({ OPERATOR, ":" });
+            i++;
         }
         else if (line.substr(i, 4) == "exit") {
             tokens.push_back({ EXIT, "exit" });
