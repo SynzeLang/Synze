@@ -15,8 +15,7 @@ enum TokenType {
     EXIT,
     HELP,
     COMMENT,
-    FUNC,       // Added for function keyword
-    END,        // Added for the 'end' keyword or indentation tracking (if required)
+    FUNC,
     INVALID
 };
 

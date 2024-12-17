@@ -60,7 +60,34 @@ send "This is a backslash: \\" # 'This is a backslash: \'
 
 #---FUNCTIONS---
 
-func greet
-    send "Hello there! How are you doing today?" # 'Hello there! How are you doing today?'
+# NOTE: comments don't currently work if you type it next to a function. ex: 'greet "Bob" # this is a comment' <- throws error
 
-greet
+func greet name
+    send "Hi {name}, how are you doing today?"
+
+greet "Bob"
+# 'Hi Bob, how are you doing today?'
+
+func add a, b
+    send a + b
+
+add 1, 2
+# '3'
+
+func subtract x, y
+    send x - y
+
+subtract 521507, 1259
+# '520248'
+
+func multiply x, y
+    send x * y
+
+multiply 10, 50 # '500'
+# '500'
+
+func divide x, y
+    send x / y
+
+divide 100, 50 # '2'
+# '2'

@@ -1,5 +1,24 @@
-func greet
-    send "Hi!"
+func greet name
+    send "Hi {name}, how are you doing today?"
 
-greet
-greet
+greet "Bob"
+
+func add a, b
+    send a + b
+
+add 1, 2
+
+func subtract x, y
+    send x - y
+
+subtract 521507, 1259
+
+func multiply x, y
+    send x * y
+
+multiply 10, 50
+
+func divide x, y
+    send x / y
+
+divide 100, 50
