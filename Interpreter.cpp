@@ -129,18 +129,11 @@ void Interpreter::execute(const std::string& line) {
 
 void Interpreter::handleVariableDeclaration(const std::vector<Token>& tokens) {
     std::string varName = tokens[0].value;
-
     Token valueToken = tokens[2];
 
     if (variables.find(varName) != variables.end()) {
         std::cerr << "Warning: Variable '" << varName
                   << "' already declared. Overwriting the previous value." << std::endl;
-    }
-
-    if (valueToken.type == OPERATOR && valueToken.value == "-" &&
-        tokens.size() > 3 && tokens[3].type == NUMBER) {
-        valueToken.type = NUMBER;
-        valueToken.value = "-" + tokens[3].value;
     }
 
     if (valueToken.type == STRING_LITERAL) {
@@ -149,6 +142,11 @@ void Interpreter::handleVariableDeclaration(const std::vector<Token>& tokens) {
         variables[varName] = { "number", valueToken.value };
     } else if (valueToken.value == "true" || valueToken.value == "false") {
         variables[varName] = { "boolean", valueToken.value };
+    } else if (valueToken.value == "input") {
+        std::cout << varName;
+        std::string inputValue;
+        std::getline(std::cin, inputValue);
+        variables[varName] = { "string", inputValue };
     } else if (valueToken.type == IDENTIFIER) {
         auto it = variables.find(valueToken.value);
         if (it == variables.end()) {
@@ -292,6 +290,22 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
             currentOperator = tokenValue[0];
             isMathMode = true;
         }
+        else if (tokenValue == "input") {
+            if (i + 1 >= tokens.size() || tokens[i + 1].type != IDENTIFIER) {
+                throw std::runtime_error("Expected a variable name after 'input'.");
+            }
+
+            const std::string& varName = tokens[i + 1].value;
+            std::string userInput;
+
+            std::getline(std::cin, userInput);
+
+            variables[varName] = {"string", userInput};
+
+            ++i;
+        }
+
+
         else if (tokenValue[0] == '{') {
             throw std::runtime_error("Invalid use of curly braces '{'.");
         }
