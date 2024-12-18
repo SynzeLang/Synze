@@ -83,11 +83,11 @@ subtract 521507, 1259
 func multiply x, y
     send x * y
 
-multiply 10, 50 # '500'
+multiply 10, 50
 # '500'
 
 func divide x, y
     send x / y
 
-divide 100, 50 # '2'
+divide 100, 50
 # '2'

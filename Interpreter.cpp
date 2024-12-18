@@ -9,7 +9,7 @@
 #include <chrono>
 
 void Interpreter::execute(const std::string& line) {
-    std::vector<Token> tokens = tokenize(line);
+    std::vector<Token> tokens = tokenize(line); // First declaration
     static int currentIndentationLevel = 0;
     static std::vector<std::string> bufferedFunctionLines;
     static bool capturingFunction = false;
@@ -18,15 +18,17 @@ void Interpreter::execute(const std::string& line) {
 
     int lineIndentation = getIndentationLevel(line);
 
+    // If capturing a function and the indentation decreases, finalize the function
     if (capturingFunction && lineIndentation <= currentIndentationLevel) {
         functions[currentFunctionName] = { currentFunctionParams, bufferedFunctionLines };
         bufferedFunctionLines.clear();
         capturingFunction = false;
     }
 
-    if (tokens.empty()) return;
+    if (tokens.empty()) return; // Use the existing tokens variable
     if (tokens[0].type == COMMENT) return;
 
+    // Handle function definitions
     if (tokens[0].type == FUNC) {
         if (tokens.size() < 2 || tokens[1].type != IDENTIFIER) {
             throw std::runtime_error("Invalid function definition. Syntax: func name param1, param2");
@@ -34,6 +36,7 @@ void Interpreter::execute(const std::string& line) {
 
         currentFunctionName = tokens[1].value;
 
+        // Parse parameter list
         currentFunctionParams.clear();
         for (size_t i = 2; i < tokens.size(); ++i) {
             if (tokens[i].type == IDENTIFIER) {
@@ -43,11 +46,13 @@ void Interpreter::execute(const std::string& line) {
             }
         }
 
+        // Start capturing function body
         capturingFunction = true;
         currentIndentationLevel = lineIndentation;
         return;
     }
 
+    // Capture indented lines for function body
     if (capturingFunction) {
         if (lineIndentation > currentIndentationLevel) {
             bufferedFunctionLines.push_back(trim(line));
@@ -57,6 +62,7 @@ void Interpreter::execute(const std::string& line) {
         return;
     }
 
+    // Handle function calls
     if (functions.find(tokens[0].value) != functions.end()) {
         handleFunctionCall(tokens);
     }
@@ -341,60 +347,75 @@ double Interpreter::evaluateExpression(const std::string& expr) {
 void Interpreter::handleFunctionCall(const std::vector<Token>& tokens) {
     const std::string& funcName = tokens[0].value;
 
+    // Check if the function exists
     if (functions.find(funcName) == functions.end()) {
         throw std::runtime_error("Undefined function: " + funcName);
     }
 
     const auto& func = functions[funcName];
-    const auto& paramNames = func.first;
-    const auto& funcBody = func.second;
+    const auto& paramNames = func.first;  // Parameter names
+    const auto& funcBody = func.second;  // Function body lines
 
+    // Parse arguments from comma-separated syntax
     std::vector<std::string> args;
     for (size_t i = 1; i < tokens.size(); ++i) {
         if (tokens[i].type == IDENTIFIER || tokens[i].type == NUMBER || tokens[i].type == STRING_LITERAL) {
             args.push_back(tokens[i].value);
         } else if (tokens[i].type == OPERATOR && tokens[i].value == ",") {
-            continue;
+            continue; // Skip commas
         } else {
             throw std::runtime_error("Invalid syntax in function call.");
         }
     }
 
+    // Check argument count matches parameter count
     if (args.size() != paramNames.size()) {
         throw std::runtime_error("Function '" + funcName + "' expects " +
                                  std::to_string(paramNames.size()) + " arguments, but " +
                                  std::to_string(args.size()) + " were provided.");
     }
 
+    // Backup global variables and create local scope
     auto globalVars = variables;
     std::unordered_map<std::string, std::pair<std::string, std::string>> localVars = variables;
 
+    // Map arguments to parameters
     for (size_t i = 0; i < paramNames.size(); ++i) {
-        if (variables.find(args[i]) != variables.end()) {
-            localVars[paramNames[i]] = variables[args[i]];
+        const std::string& argValue = args[i];
+
+        // Check if the argument is a variable
+        if (variables.find(argValue) != variables.end()) {
+            localVars[paramNames[i]] = variables[argValue];
+        } else if (std::all_of(argValue.begin(), argValue.end(), ::isdigit) ||
+                   (argValue[0] == '-' && argValue.size() > 1 && std::isdigit(argValue[1]))) {
+            localVars[paramNames[i]] = { "number", argValue }; // Store as number
         } else {
-            localVars[paramNames[i]] = { "string", args[i] };
+            localVars[paramNames[i]] = { "string", argValue }; // Default to string
         }
     }
 
+    // Execute function body with local variables
     variables = localVars;
     for (const auto& line : funcBody) {
         execute(line);
     }
 
+    // Restore global variables after function execution
     variables = globalVars;
 }
 
+// Utility to get indentation level (spaces or tabs)
 int Interpreter::getIndentationLevel(const std::string& line) {
     int level = 0;
     for (char c : line) {
         if (c == ' ') level++;
-        else if (c == '\t') level += 4;
+        else if (c == '\t') level += 4; // Treat tab as 4 spaces
         else break;
     }
     return level;
 }
 
+// Utility to trim whitespace
 std::string Interpreter::trim(const std::string& str) {
     size_t first = str.find_first_not_of(" \t");
     size_t last = str.find_last_not_of(" \t");
@@ -421,7 +442,8 @@ std::vector<Token> Interpreter::tokenize(const std::string& line) {
             break;
         }
         if (line[i] == ',') {
-            tokens.push_back({ OPERATOR, "," });
+            tokens.push_back({ OPERATOR, "," }); // Treat commas as separators
+            i++;
             continue;
         }
 
