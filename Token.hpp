@@ -13,7 +13,6 @@ enum TokenType {
     RUN,
     VARIABLE,
     EXIT,
-    HELP,
     COMMENT,
     FUNC,
     INVALID

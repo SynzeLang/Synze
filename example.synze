@@ -23,6 +23,22 @@ send x + y # '15'
 isActive = true # sets the variable isActive to 'true'
 send "Status: " + isActive # 'Status: true'
 
+# Input Variables
+person = input # the variable person is now an input
+send "How are you doing today {person}?"
+
+# Advanced Input Variables (using functions)
+func power x, y
+    send x ^ y
+
+send "Enter first number"
+num1 = input
+
+send "Enter second number"
+num2 = input
+
+send "Result"
+power num1, num2
 
 #---MATH---
 

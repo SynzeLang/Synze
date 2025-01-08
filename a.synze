@@ -1,3 +1,9 @@
-send "Enter your name:"
-name = input
-send "Hello, {name}!"
+func power x, y
+    send x ^ y
+
+send "Enter first number"
+num1 = input
+send "Enter second number"
+num2 = input
+send "Result"
+power num1, num2

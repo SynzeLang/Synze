@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 
 void Interpreter::execute(const std::string& line) {
     std::vector<Token> tokens = tokenize(line);
@@ -77,54 +78,6 @@ void Interpreter::execute(const std::string& line) {
         std::this_thread::sleep_for(std::chrono::milliseconds(750));
         exit(0);
     }
-    else if (tokens[0].type == HELP) {
-        if (tokens.size() == 2) {
-            const std::string& command = tokens[1].value;
-
-            if (command == "run") {
-                std::cout << "Run Command Help Menu\n"
-                          << "Executes a specified file with syntax commands. Syntax:\n"
-                          << "  run [file]\n\n"
-                          << "- [file]: Path to the .synze file to be executed.\n"
-                          << "  Ensure the file exists and uses the .synze extension.\n";
-            } else if (command == "send") {
-                std::cout << "Send Command Help Menu\n"
-                          << "Processes and outputs a text message or evaluates expressions. Syntax:\n"
-                          << "  send [text/expression]\n\n"
-                          << "- [text or expression]: Can be a plain message, mathematical\n"
-                          << "  operation, or variable reference.\n";
-            } else if (command == "variable") {
-                std::cout << "Variable Declaration Help Menu\n"
-                          << "Creates or updates a variable. Syntax:\n"
-                          << "  variable [name] = [value]\n\n"
-                          << "- [name]: Identifier for the variable (letters, numbers, or underscores).\n"
-                          << "- [value]: Initial value (string, number, boolean, or another variable).\n";
-            } else if (command == "exit") {
-                std::cout << "Exit Command Help Menu\n"
-                          << "Terminates the interpreter. Syntax:\n"
-                          << "  exit\n\n"
-                          << "- No additional arguments are required.\n";
-            } else {
-                std::cout << "Error: No help available for command: " << command << std::endl;
-            }
-        } else if (tokens.size() == 1) {
-            std::cout << "Help Menu\n\n"
-                      << "Command Overview:\n"
-                      << "  [] - Required parameters.\n"
-                      << "  () - Optional parameters.\n\n"
-                      << "Commands:\n"
-                      << "  variable [name] = [value] - Declare or assign a variable.\n"
-                      << "  send [text/expression] - Output a message or evaluate an expression.\n"
-                      << "  run [file] - Execute a file containing commands.\n"
-                      << "  exit - Close the interpreter.\n"
-                      << "  help (command) - Display help for a specific command.\n";
-        } else {
-            std::cout << "Error: Invalid syntax for help command. Use 'help' or 'help [command]'.\n";
-        }
-    }
-    else {
-        throw std::runtime_error("Invalid command. Use 'help' for more help.");
-    }
 }
 
 void Interpreter::handleVariableDeclaration(const std::vector<Token>& tokens) {
@@ -143,10 +96,17 @@ void Interpreter::handleVariableDeclaration(const std::vector<Token>& tokens) {
     } else if (valueToken.value == "true" || valueToken.value == "false") {
         variables[varName] = { "boolean", valueToken.value };
     } else if (valueToken.value == "input") {
-        std::cout << varName;
         std::string inputValue;
         std::getline(std::cin, inputValue);
-        variables[varName] = { "string", inputValue };
+
+        if (inputValue == "true" || inputValue == "false") {
+            variables[varName] = { "boolean", inputValue };
+        } else if (std::all_of(inputValue.begin(), inputValue.end(),
+                               [](char c) { return std::isdigit(c) || c == '.'; })) {
+            variables[varName] = { "number", inputValue };
+        } else {
+            variables[varName] = { "string", inputValue };
+        }
     } else if (valueToken.type == IDENTIFIER) {
         auto it = variables.find(valueToken.value);
         if (it == variables.end()) {
@@ -251,6 +211,7 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
                         case '+': mathResult += value; break;
                         case '-': mathResult -= value; break;
                         case '*': mathResult *= value; break;
+                        case '^': mathResult = std::pow(mathResult, value); break;
                         case '/':
                             if (value == 0) throw std::runtime_error("Division by zero.");
                             mathResult /= value;
@@ -271,6 +232,7 @@ std::string Interpreter::handleSendCommand(const std::vector<Token>& tokens) {
                     case '+': mathResult += value; break;
                     case '-': mathResult -= value; break;
                     case '*': mathResult *= value; break;
+                    case '^': mathResult = std::pow(mathResult, value); break;
                     case '/':
                         if (value == 0) throw std::runtime_error("Division by zero.");
                         mathResult /= value;
@@ -338,6 +300,7 @@ double Interpreter::evaluateExpression(const std::string& expr) {
                 case '+': result += currentValue; break;
                 case '-': result -= currentValue; break;
                 case '*': result *= currentValue; break;
+                case '^': result = std::pow(result, currentValue); break;
                 case '/':
                     if (currentValue == 0) throw std::runtime_error("Division by zero.");
                     result /= currentValue;
@@ -473,16 +436,6 @@ std::vector<Token> Interpreter::tokenize(const std::string& line) {
             tokens.push_back({ EXIT, "exit" });
             i += 4;
         }
-        else if (line.substr(i, 4) == "help") {
-            tokens.push_back({ HELP, "help" });
-            i += 4;
-            while (i < line.length() && std::isspace(line[i])) i++;
-            if (i < line.length()) {
-                size_t start = i;
-                while (i < line.length() && !std::isspace(line[i])) i++;
-                tokens.push_back({ IDENTIFIER, line.substr(start, i - start) });
-            }
-        }
         else if (line[i] == '"') {
             std::string literal;
             i++;
@@ -526,7 +479,7 @@ std::vector<Token> Interpreter::tokenize(const std::string& line) {
             while (i < line.length() && (std::isalnum(line[i]) || line[i] == '_')) i++;
             tokens.push_back({ IDENTIFIER, line.substr(start, i - start) });
         }
-        else if (line[i] == '=' || line[i] == '+' || line[i] == '-' || line[i] == '*' || line[i] == '/') {
+        else if (line[i] == '=' || line[i] == '+' || line[i] == '-' || line[i] == '*' || line[i] == '^' || line[i] == '/') {
             tokens.push_back({ line[i] == '=' ? ASSIGNMENT : OPERATOR, std::string(1, line[i]) });
             i++;
         } else {
