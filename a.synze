@@ -1,9 +1,3 @@
-func power x, y
-    send x ^ y
-
-send "Enter first number"
-num1 = input
-send "Enter second number"
-num2 = input
-send "Result"
-power num1, num2
+x = 5
+if x == 5
+    send "x = 5"

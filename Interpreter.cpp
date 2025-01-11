@@ -16,6 +16,10 @@ void Interpreter::execute(const std::string& line) {
     static bool capturingFunction = false;
     static std::string currentFunctionName;
     static std::vector<std::string> currentFunctionParams;
+    static std::vector<std::string> bufferedBlockLines;
+    static bool capturingBlock = false;
+    static std::string blockType;
+    static bool conditionMatched = false;
 
     int lineIndentation = getIndentationLevel(line);
 
@@ -24,11 +28,54 @@ void Interpreter::execute(const std::string& line) {
         bufferedFunctionLines.clear();
         capturingFunction = false;
     }
+    if (capturingBlock && lineIndentation <= currentIndentationLevel) {
+        if (blockType == "if" || blockType == "else if") {
+            if (!conditionMatched && evaluateCondition(bufferedBlockLines[0])) {
+                for (size_t i = 1; i < bufferedBlockLines.size(); ++i) {
+                    execute(bufferedBlockLines[i]);
+                }
+                conditionMatched = true;
+            }
+        } else if (blockType == "else" && !conditionMatched) {
+            for (const auto& blockLine : bufferedBlockLines) {
+                execute(blockLine);
+            }
+            conditionMatched = true;
+        }
+
+        bufferedBlockLines.clear();
+        capturingBlock = false;
+    }
 
     if (tokens.empty()) return;
     if (tokens[0].type == COMMENT) return;
+    if (tokens[0].value == "if" || tokens[0].value == "else if" || tokens[0].value == "else") {
+        if (capturingBlock) {
+            throw std::runtime_error("Unexpected control structure inside an existing block.");
+        }
 
-    if (tokens[0].type == FUNC) {
+        blockType = tokens[0].value;
+        capturingBlock = true;
+        currentIndentationLevel = lineIndentation;
+        conditionMatched = (blockType == "else") ? conditionMatched : false;
+
+        if (tokens[0].value != "else") {
+            bufferedBlockLines.push_back(trim(line));
+        }
+
+        return;
+    }
+
+    else if (capturingBlock) {
+        if (lineIndentation > currentIndentationLevel) {
+            bufferedBlockLines.push_back(trim(line));
+        } else {
+            throw std::runtime_error("Unexpected indentation in conditional block.");
+        }
+        return;
+    }
+
+    else if (tokens[0].type == FUNC) {
         if (tokens.size() < 2 || tokens[1].type != IDENTIFIER) {
             throw std::runtime_error("Invalid function definition. Syntax: func name param1, param2");
         }
@@ -313,6 +360,37 @@ double Interpreter::evaluateExpression(const std::string& expr) {
         }
     }
     return result;
+}
+
+double Interpreter::evaluateCondition(const std::string& conditionLine) {
+    std::vector<Token> tokens = tokenize(conditionLine);
+    if (tokens.size() < 3 || tokens[1].type != OPERATOR) {
+        throw std::runtime_error("Invalid condition syntax in: " + conditionLine);
+    }
+
+    auto left = tokens[0].value;
+    auto right = tokens[2].value;
+    auto op = tokens[1].value;
+
+    if (variables.find(left) != variables.end()) {
+        left = variables[left].second;
+    }
+
+    if (variables.find(right) != variables.end()) {
+        right = variables[right].second;
+    }
+
+    double leftValue = std::stod(left);
+    double rightValue = std::stod(right);
+
+    if (op == "==") return leftValue == rightValue;
+    if (op == "!=") return leftValue != rightValue;
+    if (op == "<") return leftValue < rightValue;
+    if (op == ">") return leftValue > rightValue;
+    if (op == "<=") return leftValue <= rightValue;
+    if (op == ">=") return leftValue >= rightValue;
+
+    throw std::runtime_error("Unsupported operator in condition: " + op);
 }
 
 void Interpreter::handleFunctionCall(const std::vector<Token>& tokens) {

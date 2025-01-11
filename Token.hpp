@@ -15,6 +15,9 @@ enum TokenType {
     EXIT,
     COMMENT,
     FUNC,
+    IF,
+    ELSE_IF,
+    ELSE,  
     INVALID
 };
 

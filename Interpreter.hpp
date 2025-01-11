@@ -23,6 +23,7 @@ private:
     std::string trim(const std::string& str);
 
     double evaluateExpression(const std::string& expr);
+    double evaluateCondition(const std::string& conditionLine);
 };
 
 #endif
