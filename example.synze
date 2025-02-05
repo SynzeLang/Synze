@@ -24,6 +24,7 @@ isActive = true # sets the variable isActive to 'true'
 send "Status: " + isActive # 'Status: true'
 
 # Input Variables
+send "Enter your name:"
 person = input # the variable person is now an input
 send "How are you doing today {person}?"
 
